@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+    <!-- database configurations -->
+    <Parameter name="JDBC.driver"   value="org.postgresql.Driver"/>
+    <Parameter name="JDBC.url"      value="jdbc:postgresql://_SQL_HOST_:_SQL_PORT_/_SQL_BASE_?sslmode=require"/>
+    <Parameter name="JDBC.username" value="_SQL_USER_"/>
+    <Parameter name="JDBC.password" value="_SQL_PASS_"/>
+
+    <!-- Base directory to store app data -->
+    <Parameter name="base.directory" value="/usr/local/tomcat/work"/>
+
+    <!-- Directory to store uploaded app files -->
+    <Parameter name="files.directory" value="/usr/local/tomcat/work/files"/>
+
+    <!-- URL used to open Headwind MDM control panel -->
+    <Parameter name="base.url" value="_PROTOCOL_://_BASE_DOMAIN_"/>
+
+    <!-- private / shared -->
+    <Parameter name="usage.scenario" value="private" />
+
+    <!-- If set to 1, device config request must be signed by shared secret -->
+    <Parameter name="secure.enrollment" value="0"/>
+    <Parameter name="hash.secret" value="_SHARED_SECRET_"/>
+
+    <!-- Plugin files directory -->
+    <Parameter name="plugins.files.directory" value="/usr/local/tomcat/work/plugins"/>
+
+    <!-- Device log persistence -->
+    <Parameter name="plugin.devicelog.persistence.config.class" value="com.hmdm.plugins.devicelog.persistence.postgres.DeviceLogPostgresPersistenceConfiguration"/>
+
+    <Parameter name="role.orgadmin.id" value="2"/>
+    <Parameter name="initialization.completion.signal.file" value="/usr/local/tomcat/work/"/>
+    <Parameter name="log4j.config" value="file:///usr/local/tomcat/work/log4j-hmdm.xml"/>
+    <Parameter name="aapt.command" value="aapt"/>
+
+    <!-- MQTT notification service -->
+    <Parameter name="mqtt.server.uri" value="0.0.0.0:31000"/>
+    <Parameter name="device.fast.search.chars" value="5"/>
+    <Parameter name="mqtt.auth" value="1"/>
+
+    <!-- Email templates -->
+    <Parameter name="email.recovery.subj" value="/usr/local/tomcat/work/emails/en/recovery_subj.txt"/>
+    <Parameter name="email.recovery.body" value="/usr/local/tomcat/work/emails/en/recovery_body.txt"/>
+
+    <Parameter name="sql.init.script.path" value="/usr/local/tomcat/work/init.sql"/>
+</Context>
