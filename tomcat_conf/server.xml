@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Server port="8005" shutdown="SHUTDOWN">
+<!-- Port 8005 disabled: Render health checks were hitting the shutdown port -->
+<Server port="-1" shutdown="SHUTDOWN">
   <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
   <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
   <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
