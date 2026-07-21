@@ -68,7 +68,10 @@ fi
 
 # Limit JVM memory for Render's 512MB free tier
 # Without these limits, Java+Tomcat exceeds 512MB and gets OOM-killed
-export CATALINA_OPTS="-Xmx256m -Xms128m -XX:MaxMetaspaceSize=64m -Xss512k -XX:+UseSerialGC"
+# Aggressive memory limits for Render's 512MB free tier
+# Total estimated usage: 192MB heap + 48MB metaspace + ~40MB JVM + ~50MB native + ~100MB OS = ~430MB
+# This leaves ~80MB headroom within the 512MB limit
+export CATALINA_OPTS="-Xmx192m -Xms96m -XX:MaxMetaspaceSize=48m -Xss256k -XX:+UseSerialGC"
 
 echo "========================================"
 echo "Headwind MDM starting..."
