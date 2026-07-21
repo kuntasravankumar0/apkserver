@@ -35,6 +35,9 @@ COPY plugins plugins/
 COPY server server/
 COPY install install/
 
+# Copy build.properties from example (file is gitignored but needed for Maven)
+RUN cp server/build.properties.example server/build.properties
+
 # Build the WAR (skip tests for faster builds)
 RUN mvn install -DskipTests -B
 
