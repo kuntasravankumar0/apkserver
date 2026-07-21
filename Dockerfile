@@ -38,6 +38,10 @@ COPY install install/
 # Copy build.properties from example (file is gitignored but needed for Maven)
 RUN cp server/build.properties.example server/build.properties
 
+# Skip frontend grunt build (frontend resources already in repo under src/main/webapp/)
+# The grunt 'resolve' task fails in Docker due to missing dependencies
+RUN sed -i 's|<phase>generate-resources</phase>|<phase>none</phase>|' server/pom.xml
+
 # Build the WAR (skip tests for faster builds)
 RUN mvn install -DskipTests -B
 
