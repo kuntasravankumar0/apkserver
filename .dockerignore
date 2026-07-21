@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build output
+target
+server/target
+common/target
+jwt/target
+notification/target
+plugins/*/target
+
+# Environment files (contain secrets)
+.env
+
+# Node / JS build artifacts
+node_modules
+server/webtarget/node
+server/webtarget/lib
+server/src/main/webapp/lib/
+**/bower_components
+
+# IDE
+.idea
+*.iml
+
+# Logs
+logs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak

@@ -1,7 +1,7 @@
 # ============================================================
 # Dockerfile for Headwind MDM (hmdm-server)
-# Multi-stage build: Maven + Tomcat
-# Deploy on Render using "Docker" runtime
+# Multi-stage build: Maven build + Tomcat runtime
+# Designed for Render (SSL terminated at Render's edge)
 # ============================================================
 
 # ---- Stage 1: Build the WAR with Maven ----
@@ -9,51 +9,67 @@ FROM maven:3.8-openjdk-11-slim AS builder
 
 WORKDIR /build
 
-# Install required tools
+# Install aapt (Android Asset Packaging Tool)
 RUN apt-get update && apt-get install -y \
     aapt \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy source
-COPY . .
+# Copy pom.xml files first for dependency caching
+COPY pom.xml .
+COPY common/pom.xml common/
+COPY jwt/pom.xml jwt/
+COPY notification/pom.xml notification/
+COPY swagger/ui/pom.xml swagger/ui/
+COPY plugins/pom.xml plugins/
+COPY server/pom.xml server/
 
-# Build the WAR (skip tests for faster build)
-RUN mvn install -DskipTests
+# Download dependencies (cached layer)
+RUN mvn dependency:go-offline -B || true
 
-# ---- Stage 2: Run with Tomcat ----
+# Copy source code
+COPY common common/
+COPY jwt jwt/
+COPY notification notification/
+COPY swagger swagger/
+COPY plugins plugins/
+COPY server server/
+COPY install install/
+
+# Build the WAR (skip tests for faster builds)
+RUN mvn install -DskipTests -B
+
+# ---- Stage 2: Run with Tomcat (minimal runtime) ----
 FROM tomcat:9-jdk11-temurin-jammy
 
-# Install required tools
+# Install runtime dependencies
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y \
         aapt \
         wget \
-        sed \
+        curl \
         postgresql-client \
-        openssl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create directories
-RUN mkdir -p /usr/local/tomcat/conf/Catalina/localhost
-RUN mkdir -p /usr/local/tomcat/ssl
-RUN mkdir -p /usr/local/tomcat/work/cache
-RUN mkdir -p /usr/local/tomcat/work/files
-RUN mkdir -p /usr/local/tomcat/work/plugins
-RUN mkdir -p /usr/local/tomcat/work/logs
+# Create required directories
+RUN mkdir -p /usr/local/tomcat/conf/Catalina/localhost \
+    /usr/local/tomcat/work/cache \
+    /usr/local/tomcat/work/files \
+    /usr/local/tomcat/work/plugins \
+    /usr/local/tomcat/work/logs
 
-# Copy the WAR from builder stage
+# Copy the WAR from the builder stage
 COPY --from=builder /build/server/target/launcher.war /usr/local/tomcat/webapps/ROOT.war
 
-# Copy entrypoint and templates
+# Copy entrypoint and configuration templates
 COPY docker-entrypoint.sh /
 COPY templates /opt/hmdm/templates/
-COPY tomcat_conf/server.xml /usr/local/tomcat/conf/server.xml
 
-# Expose ports
+# Expose port (Render handles SSL termination at the edge)
 EXPOSE 8080
-EXPOSE 8443
-EXPOSE 31000
+
+# Health check for Render
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl --fail http://localhost:8080/ || exit 1
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
