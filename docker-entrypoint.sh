@@ -66,11 +66,16 @@ if [ -f /opt/java/openjdk/conf/security/java.security ]; then
         /opt/java/openjdk/conf/security/java.security 2>/dev/null || true
 fi
 
+# Limit JVM memory for Render's 512MB free tier
+# Without these limits, Java+Tomcat exceeds 512MB and gets OOM-killed
+export CATALINA_OPTS="-Xmx256m -Xms128m -XX:MaxMetaspaceSize=64m -Xss512k -XX:+UseSerialGC"
+
 echo "========================================"
 echo "Headwind MDM starting..."
 echo "Database: $SQL_HOST:$SQL_PORT/$SQL_BASE"
 echo "Protocol: $PROTOCOL"
 echo "Domain:   $BASE_DOMAIN"
+echo "JVM:      $CATALINA_OPTS"
 echo "========================================"
 
 # Start Tomcat in foreground

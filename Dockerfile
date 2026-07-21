@@ -78,7 +78,7 @@ EXPOSE 8080
 # Health check for Render
 # Use -o /dev/null to accept any HTTP response (Tomcat returns 404 while app initializes)
 # The --retries=10 gives the app enough time to finish Liquibase migrations
-HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=10 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=120s --retries=10 \
     CMD curl -f http://localhost:8080/ -o /dev/null -s || curl -s http://localhost:8080/ -o /dev/null || exit 1
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
