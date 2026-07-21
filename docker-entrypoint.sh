@@ -27,6 +27,25 @@ mkdir -p "$TOMCAT_DIR/conf/Catalina/localhost"
 : "${BASE_DOMAIN:=localhost}"
 : "${SHARED_SECRET:=changeme-C3z9vi54}"
 : "${JDBC_SSLMODE:=require}"
+: "${CATALINA_OPTS:=-Xmx192m -Xms96m -XX:MaxMetaspaceSize=48m -Xss256k -XX:+UseSerialGC}"
+
+# Import Aiven CA certificate into Java truststore (if mounted)
+CA_CERT_PATH="/opt/aiven/ca-certificate.pem"
+JAVA_HOME="${JAVA_HOME:-/opt/java/openjdk}"
+TRUSTSTORE="$JAVA_HOME/lib/security/cacerts"
+TRUSTSTORE_PASS="${TRUSTSTORE_PASS:-changeit}"
+
+if [ -f "$CA_CERT_PATH" ]; then
+    keytool -list -keystore "$TRUSTSTORE" -storepass "$TRUSTSTORE_PASS" -alias aiven-ca > /dev/null 2>&1 || {
+        echo "Importing Aiven CA certificate into Java truststore..."
+        keytool -importcert -noprompt \
+            -keystore "$TRUSTSTORE" \
+            -storepass "$TRUSTSTORE_PASS" \
+            -alias aiven-ca \
+            -file "$CA_CERT_PATH"
+        echo "Aiven CA certificate imported successfully."
+    }
+fi
 
 # Wait for PostgreSQL to be ready
 echo "Waiting for PostgreSQL at $SQL_HOST:$SQL_PORT..."
@@ -37,15 +56,23 @@ done
 echo "PostgreSQL is ready!"
 
 # Configure Tomcat context from environment variables using template
+# Escape special characters in variables for safe sed use
+SQL_PASS_ESC=$(echo "$SQL_PASS" | sed 's|[|&\\/]|\\&|g')
+SQL_USER_ESC=$(echo "$SQL_USER" | sed 's|[|&\\/]|\\&|g')
+SHARED_SECRET_ESC=$(echo "$SHARED_SECRET" | sed 's|[|&\\/]|\\&|g')
+BASE_DOMAIN_ESC=$(echo "$BASE_DOMAIN" | sed 's|[|&\\/]|\\&|g')
+SQL_HOST_ESC=$(echo "$SQL_HOST" | sed 's|[|&\\/]|\\&|g')
+SQL_BASE_ESC=$(echo "$SQL_BASE" | sed 's|[|&\\/]|\\&|g')
+
 sed \
-    -e "s|_SQL_HOST_|$SQL_HOST|g" \
+    -e "s|_SQL_HOST_|$SQL_HOST_ESC|g" \
     -e "s|_SQL_PORT_|$SQL_PORT|g" \
-    -e "s|_SQL_BASE_|$SQL_BASE|g" \
-    -e "s|_SQL_USER_|$SQL_USER|g" \
-    -e "s|_SQL_PASS_|$SQL_PASS|g" \
+    -e "s|_SQL_BASE_|$SQL_BASE_ESC|g" \
+    -e "s|_SQL_USER_|$SQL_USER_ESC|g" \
+    -e "s|_SQL_PASS_|$SQL_PASS_ESC|g" \
     -e "s|_PROTOCOL_|$PROTOCOL|g" \
-    -e "s|_BASE_DOMAIN_|$BASE_DOMAIN|g" \
-    -e "s|_SHARED_SECRET_|$SHARED_SECRET|g" \
+    -e "s|_BASE_DOMAIN_|$BASE_DOMAIN_ESC|g" \
+    -e "s|_SHARED_SECRET_|$SHARED_SECRET_ESC|g" \
     -e "s|_JDBC_SSLMODE_|$JDBC_SSLMODE|g" \
     $TEMPLATE_DIR/conf/context_template.xml \
     > $TOMCAT_DIR/conf/Catalina/localhost/ROOT.xml
@@ -66,12 +93,8 @@ if [ -f /opt/java/openjdk/conf/security/java.security ]; then
         /opt/java/openjdk/conf/security/java.security 2>/dev/null || true
 fi
 
-# Limit JVM memory for Render's 512MB free tier
-# Without these limits, Java+Tomcat exceeds 512MB and gets OOM-killed
-# Aggressive memory limits for Render's 512MB free tier
-# Total estimated usage: 192MB heap + 48MB metaspace + ~40MB JVM + ~50MB native + ~100MB OS = ~430MB
-# This leaves ~80MB headroom within the 512MB limit
-export CATALINA_OPTS="-Xmx192m -Xms96m -XX:MaxMetaspaceSize=48m -Xss256k -XX:+UseSerialGC"
+# CATALINA_OPTS: already set above with default; export it for Tomcat
+export CATALINA_OPTS
 
 echo "========================================"
 echo "Headwind MDM starting..."
